@@ -1,4 +1,3 @@
-$ ~/naken/bin/naken430util -disasm blinkasm.hex 
 
 naken430util - by Michael Kohn
     Web: http://www.mikekohn.net/
