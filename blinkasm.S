@@ -1,5 +1,6 @@
 ;-------------------------------------------------------------------------------
 ; blinkasm.S - gcc compatible interrupt driven led blinker in msp430 asm
+; 
 ;-------------------------------------------------------------------------------
 #include <msp430.h>
 
@@ -24,73 +25,79 @@
 
 #define TIMER_CYCLES R11
 #define INTERVAL_CNT R12
-#define indx R13
+#define rIndx R13
 
 ;-------------------------------------------------------------------------------
 ;;; ---- CONSTANTS ----
 
-#if 0
-#define _50uSEC 50         /* @1MHz MCLK this works out to be 50uSec/interrupt */
-#define _500MSEC 10000     /* @1MHz MCLK this works out to be 500ms/LED toggle */
+#ifndef TEST_IRQ_OVERHEAD
+ #define _50USEC 50       /* @1MHz MCLK this works out to be 50uSec/interrupt */
+ #define _500MSEC 10000   /* @1MHz MCLK this works out to be 500ms/LED toggle */
 #else
-#define _50uSEC 24         /* @1MHz MCLK this works out to be 50uSec/interrupt */
-#define _500MSEC 1     /* @1MHz MCLK this works out to be 500ms/LED toggle */
+ ;; Test to illustrate the minimum CCR0 value that can be used (24)
+ ;; this value is based on the interrupt overhead
+ #define _50USEC 24       /* @1MHz MCLK this works out to be 24uSec/interrupt */
+ #define _500MSEC 1       /* @1MHz MCLK this works out to be 24uSec/LED toggle */
 #endif
-#define LED_PIN BIT6       /* PORT1 pin, Launchpad has BIT0=Red and BIT6=Green */
+#define LED_PIN BIT6      /* PORT1 pin, Launchpad has BIT0=Red and BIT6=Green */
 
 ;-------------------------------------------------------------------------------
         .text
 ;-------------------------------------------------------------------------------
 RESET_ISR:
-        mov.w   #__stack,SP
+        ;; disable watchdog and set stack to highest RAM addr
         mov.w   #WDTPW+WDTHOLD,&WDTCTL
+        mov.w   #__stack,SP                     ; gcc ldscripts compute __stack based on mmcu
 
-	;; initialize clock,gpio,timer
+        ;; initialize clock,gpio,timer
 init:
-	;; MCLK set to precalibrated 1MHz
+        ;; set MCLK to precalibrated 1MHz
         clr.b   &DCOCTL
         mov.b   &CALBC1_1MHZ,&BCSCTL1
         mov.b   &CALDCO_1MHZ,&DCOCTL
-	mov.w   #TA0CCR0,R5
 
-	;; setup global register values
-	mov.w   #_50uSEC,TIMER_CYCLES           ; initialize register constant 
-	mov.w   #_500MSEC,INTERVAL_CNT 		; initialize register constant 
-        mov.w   INTERVAL_CNT,indx               ; initialize register counter
+        ;; initialize global register values
+        mov.w   #_50USEC,TIMER_CYCLES           ; load constant into register constant
+        mov.w   #_500MSEC,INTERVAL_CNT          ; load constant into register constant
+        mov.w   INTERVAL_CNT,rIndx              ; initialize register based counter
 
-	;; initialize GPIO
+        ;; initialize GPIO
         bis.b   #LED_PIN,&P1DIR                 ; Configure P1.0 as output pin
 
-	;; intialize TimerA0
+        ;; intialize TimerA0
         mov.w   #CCIE,&TA0CCTL0                 ; Enable TA0CCR0 interrupt
         mov.w   TIMER_CYCLES,&TA0CCR0           ; Set TIMER_CYCLES cycles
         mov.w   #TASSEL_2+MC_2,&TACTL           ; SMCLK+Continuous Up Mode
 
-	eint
+        ;; enable interrupts and loop forever
+        ;; real work done in the CCR0 interrupt
+        eint
 
 endlessLoop:
-	jmp 	endlessLoop
+        ;; Note: could sleep here instead
+        jmp     endlessLoop                     ; cycles:2
 
 ;-------------------------------------------------------------------------------
 ; TIMER0_A0_ISR - TimerA0 CCR0 interrupt handler
 ;-------------------------------------------------------------------------------
 TIMER0_A0_ISR:
-        dec.w   indx                            ; have we reached the interval cnt?
-        jnz     timer0_a0_exit                  ; exit if we haven't reached 0
+        dec.w   rIndx                           ; have we looped INTERVAL_CNT times? cycles:1
+        jnz     timer0_a0_exit                  ; exit if we haven't reached 0 cycles:2
 
-	;; toggle led pin after INTERVAL * TIMER_CYCLES
-        xor.b   #LED_PIN,&P1OUT                 ; Toggle P1.0
-        mov.w   INTERVAL_CNT,indx               ; Reset count down interval counter
+timer0_toggle:	
+        ;; toggle led pin after (INTERVAL * TIMER_CYCLES) has occured
+        xor.b   #LED_PIN,&P1OUT                 ; Toggle P1.0 cycles:5
+        mov.w   INTERVAL_CNT,rIndx              ; reinitialize interval counter cycles:1
        
 timer0_a0_exit:
-        add.w   TIMER_CYCLES,&TA0CCR0           ; reload CCR0
-        reti
+        add.w   TIMER_CYCLES,&TA0CCR0           ; set new CCR0 and go again cycles:1
+        reti                                    ; cycles:5
 
 ;------------------------------------------------------------------------------
 ; UNEXPECTED_ISR - default handler for unhandled interrupt
 ;-------------------------------------------------------------------------------
 UNEXPECTED_ISR:
-        reti
+        reti                    ; cycles: 5
 
 ;------------------------------------------------------------------------------
 ; Interrupt Vectors - see the datasheet for your chip
@@ -98,7 +105,7 @@ UNEXPECTED_ISR:
 ;------------------------------------------------------------------------------
         .section ".vectors", "ax", @progbits
         .word UNEXPECTED_ISR    ;0xffe0 slot  0  0
-        .word UNEXPECTED_ISR  	;0xffe2 slot  1  2
+        .word UNEXPECTED_ISR    ;0xffe2 slot  1  2
         .word UNEXPECTED_ISR    ;0xffe4 slot  2  4 (PORT1_VECTOR)
         .word UNEXPECTED_ISR    ;0xffe6 slot  3  6 (PORT2_VECTOR)
         .word UNEXPECTED_ISR    ;0xffe8 slot  4  8 
