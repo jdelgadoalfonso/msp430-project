@@ -3,7 +3,7 @@
 #
 # Author: Rick Kimball
 # email: rick@kimballsoftware.com
-# Version: 1.02 Initial version 10/21/2011
+# Version: 1.03 Initial version 10/21/2011
 
 APP=blinkasm
 MCU=msp430g2553
@@ -27,17 +27,17 @@ $(APP).elf: $(APP).o
 install: all
 	mspdebug --force-reset rf2500 "prog $(APP).elf"
 
-cycle_count:
-	naken430util -disasm $(APP).hex > $(APP)_cycle_count.txt
+cycle_count: all
+	naken430util -disasm $(APP).hex > $(APP)_cc.txt
 
-debug:
+debug: all
 	clear
 	@echo -e "--------------------------------------------------------------------------------"
-	@echo -e "-- Make sure you are mspdebug is running in another window                    --"
+	@echo -e "-- Make sure you are running mspdebug in another window                       --"
 	@echo -e "--------------------------------------------------------------------------------"
 	@echo -e "$$ # you can start it like this:"
 	@echo -e "$$ mspdebug rf2500 gdb\n"
 	msp430-gdb --command=blinkasm.gdb $(APP).elf
 
 clean:
-	rm -f $(APP).o $(APP).elf $(APP).lss $(APP).map $(APP).hex $(APP)_cycle_count.txt
+	rm -f $(APP).o $(APP).elf $(APP).lss $(APP).map $(APP).hex $(APP)_cc.txt
