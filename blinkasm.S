@@ -26,18 +26,20 @@
 #define TIMER_CYCLES R11
 #define INTERVAL_CNT R12
 #define rIndx R13
+#define rNextValue R14
 
 ;-------------------------------------------------------------------------------
 ;;; ---- CONSTANTS ----
 
+//#define TEST_IRQ_OVERHEAD
 #ifndef TEST_IRQ_OVERHEAD
- #define _50USEC 50       /* @1MHz MCLK this works out to be 50uSec/interrupt */
- #define _500MSEC 10000   /* @1MHz MCLK this works out to be 500ms/LED toggle */
+ #define _50USEC (50-1)       /* @1MHz MCLK this works out to be 50uSec/interrupt */
+ #define _500MSEC 10000       /* @1MHz MCLK this works out to be 500ms/LED toggle */
 #else
  ;; Test to illustrate the minimum CCR0 value that can be used (24)
  ;; this value is based on the interrupt overhead
- #define _50USEC 24       /* @1MHz MCLK this works out to be 24uSec/interrupt */
- #define _500MSEC 1       /* @1MHz MCLK this works out to be 24uSec/LED toggle */
+ #define _50USEC (24)        /* @1MHz MCLK this works out to be 24uSec/interrupt */
+ #define _500MSEC 1          /* @1MHz MCLK this works out to be 24uSec/LED toggle */
 #endif
 #define LED_PIN BIT6      /* PORT1 pin, Launchpad has BIT0=Red and BIT6=Green */
 
@@ -68,6 +70,7 @@ init:
         mov.w   #CCIE,&TA0CCTL0                 ; Enable TA0CCR0 interrupt
         mov.w   TIMER_CYCLES,&TA0CCR0           ; Set TIMER_CYCLES cycles
         mov.w   #TASSEL_2+MC_2,&TACTL           ; SMCLK+Continuous Up Mode
+	mov.w   #1,rNextValue
 
         ;; enable interrupts and loop forever
         ;; real work done in the CCR0 interrupt
@@ -81,12 +84,13 @@ endlessLoop:
 ; TIMER0_A0_ISR - TimerA0 CCR0 interrupt handler
 ;-------------------------------------------------------------------------------
 TIMER0_A0_ISR:
+	mov.b   rNextValue,&P1OUT
         dec.w   rIndx                           ; have we looped INTERVAL_CNT times? cycles:1
         jnz     timer0_a0_exit                  ; exit if we haven't reached 0 cycles:2
 
 timer0_toggle:	
         ;; toggle led pin after (INTERVAL * TIMER_CYCLES) has occured
-        xor.b   #LED_PIN,&P1OUT                 ; Toggle P1.0 cycles:5
+        xor.b   #LED_PIN,rNextValue
         mov.w   INTERVAL_CNT,rIndx              ; reinitialize interval counter cycles:1
        
 timer0_a0_exit:
