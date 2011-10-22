@@ -1,6 +1,8 @@
 ;-------------------------------------------------------------------------------
 ; blinkasm.S - gcc compatible interrupt driven led blinker in msp430 asm
-; 
+;
+; Version 1.0 - 10/22/2011 rick@kimballsoftware.com
+;	
 ;-------------------------------------------------------------------------------
 #include <msp430.h>
 
@@ -21,14 +23,6 @@
 #endif
 
 ;-------------------------------------------------------------------------------
-;;; ---- Global register usage ----
-
-#define LED_PIN r4
-#define TIMER_CYCLES r5
-#define INTERVAL_CNT r6
-#define cnt r7
-
-;-------------------------------------------------------------------------------
 ;;; ---- CONSTANTS ----
 
 //#define TEST_IRQ_OVERHEAD
@@ -43,6 +37,14 @@
  #define _500MSEC 1       /* @1MHz MCLK results in 23uSec/LED toggle */
 #endif
 #define _LED_PIN BIT6     /* PORT1 pin, Launchpad has BIT0=Red and BIT6=Green */
+
+;-------------------------------------------------------------------------------
+;;; ---- Registers used as globals ----
+
+#define LED_PIN r4
+#define TIMER_CYCLES r5
+#define INTERVAL_CNT r6
+#define cnt r7
 
 ;-------------------------------------------------------------------------------
         .text
@@ -67,7 +69,7 @@ init:
 
         ;; initialize GPIO
         bic.b   LED_PIN,&P1OUT                  ; LED turned off to start
-        bis.b   LED_PIN,&P1DIR                 ; Configure P1.0 as output pin
+        bis.b   LED_PIN,&P1DIR                  ; Configure P1.0 as output pin
 
         ;; initialize TimerA0
         mov.w   #CCIE,&TA0CCTL0                 ; Enable TA0CCR0 interrupt
