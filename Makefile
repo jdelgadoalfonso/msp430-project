@@ -5,31 +5,36 @@
 # email: rick@kimballsoftware.com
 # Version: 1.03 Initial version 10/21/2011
 
-APP = blinkasm
-MCU ?= msp430g2553
+APP				=blinkasm
+MCU			 ?=msp430g2553
 
-CC=msp430-elf-gcc
-CXX=msp430-elf-g++
-COMMON=-Wall -Os -g -I./ -Iinclude/
-CFLAGS   += -mmcu=$(MCU) $(COMMON)
-CXXFLAGS += -mmcu=$(MCU) $(COMMON)
-#ASFLAGS  += -mmcu=$(MCU) $(COMMON) -D_GNU_ASSEMBLER_
-ASFLAGS  += -mmcu=$(MCU) $(COMMON)
-LDFLAGS   = -Linclude/ -Wl,-Map,$(APP).map -nostdlib -nostartfiles -T $(MCU).ld
+CC				=msp430-elf-gcc
+CXX				=msp430-elf-g++
+COMMON		=-Wall -Os -I./ -Iinclude/
+CFLAGS	 +=-mmcu=$(MCU) $(COMMON)
+CXXFLAGS +=-mmcu=$(MCU) $(COMMON)
+ASFLAGS	 +=-mmcu=$(MCU) $(COMMON)
+LDFLAGS		=-Linclude/ -Wl,-Map,$(APP).map -nostdlib -nostartfiles -T $(MCU).ld
+
+SOURCES		=$(shell find . -name *.c -o -name *.S)
+OBJECTS		=$(addsuffix .o, $(SOURCES))
 
 all: $(APP).elf
 
-$(APP).elf: $(APP).o
-	$(CC) $(CFLAGS) $(APP).o $(LDFLAGS) -o $(APP).elf
-	msp430-elf-objdump -Sd -W $(APP).elf >$(APP).lss
-	msp430-elf-size $(APP).elf
-	msp430-elf-objcopy -O ihex blinkasm.elf blinkasm.hex
+$(OBJECTS): $(SOURCES)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(APP).elf: $(OBJECTS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $< -o $@
+	msp430-elf-objdump -Sd -W $@ >$(APP).lss
+	msp430-elf-size $@
+	msp430-elf-objcopy -O ihex $@ $(APP).hex
 
 install: all
 	mspdebug --force-reset rf2500 "prog $(APP).elf"
 
 cycle_count: all
-	naken430util -disasm $(APP).hex > $(APP)_cc.txt
+	naken_util -disasm $(APP).hex > $(APP)_cc.txt
 
 debug: all
 	clear
@@ -41,4 +46,4 @@ debug: all
 	msp430-elf-gdb --command=blinkasm.gdb $(APP).elf
 
 clean:
-	rm -f $(APP).o $(APP).elf $(APP).lss $(APP).map $(APP).hex $(APP)_cc.txt
+	rm -f $(OBJECTS) $(APP).elf $(APP).lss $(APP).map $(APP).hex $(APP)_cc.txt

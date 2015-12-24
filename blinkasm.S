@@ -8,7 +8,7 @@
 ;       -T msp430g2553.ld -I/tmp/a/include -L /tmp/a/include/ -nostdlib
 ;	
 ;-------------------------------------------------------------------------------
-	.file "blinkasm.S"
+.file "blinkasm.S"
 	
 #include <msp430.h>
 
@@ -50,9 +50,9 @@
 #define INTERVAL_CNT r6
 #define CNT r7
 
-	;;  or you could use some ram variables
-	.lcomm tcycles,2  	; example use of local bss data variable
-	.lcomm cnt,2  		; example use of local bss data variable
+        ;;  or you could use some ram variables
+        .lcomm tcycles,2    ; example use of local bss data variable
+        .lcomm cnt,2        ; example use of local bss data variable
 
 ;-------------------------------------------------------------------------------
         .section .text,"ax",@progbits
@@ -60,7 +60,7 @@
 _start:
         ;; disable watchdog and set stack to highest RAM addr
         mov.w   #WDTPW|WDTHOLD,&WDTCTL
-        mov.w   #__stack,SP                     ; gcc ldscripts compute __stack based on mmcu
+        mov.w   #__stack,SP             ; gcc ldscripts compute __stack based on mmcu
 
         ;; initialize clock,gpio,timer
 init:
@@ -70,24 +70,24 @@ init:
         mov.b   &CALDCO_1MHZ,&DCOCTL
 
         ;; initialize global register values
-        mov.w   #_LED_PIN,LED_PIN               ; load constant into register constant
-        mov.w   #_50USEC,TIMER_CYCLES           ; load constant into register constant
-        mov.w   #_500MSEC,INTERVAL_CNT          ; load constant into register constant
-        mov.w   INTERVAL_CNT,CNT                ; initialize register based counter
+        mov.w   #_LED_PIN,LED_PIN       ; load constant into register constant
+        mov.w   #_50USEC,TIMER_CYCLES   ; load constant into register constant
+        mov.w   #_500MSEC,INTERVAL_CNT  ; load constant into register constant
+        mov.w   INTERVAL_CNT,CNT        ; initialize register based counter
 
         ;; initialize GPIO
-        bic.b   LED_PIN,&P1OUT                  ; LED turned off to start
-        bis.b   LED_PIN,&P1DIR                  ; Configure P1.0 as output pin
+        bic.b   LED_PIN,&P1OUT          ; LED turned off to start
+        bis.b   LED_PIN,&P1DIR          ; Configure P1.0 as output pin
 
         ;; initialize TimerA0
-        mov.w   #CCIE,&TA0CCTL0                 ; Enable TA0CCR0 interrupt
-        mov.w   TIMER_CYCLES,&TA0CCR0           ; Set TIMER_CYCLES cycles
-        mov.w   #TASSEL_2|MC_2,&TACTL           ; SMCLK, Continuous Up Mode
+        mov.w   #CCIE,&TA0CCTL0         ; Enable TA0CCR0 interrupt
+        mov.w   TIMER_CYCLES,&TA0CCR0   ; Set TIMER_CYCLES cycles
+        mov.w   #TASSEL_2|MC_2,&TACTL   ; SMCLK, Continuous Up Mode
 
         ;; enable interrupts and loop forever
         ;; real work done in the CCR0 interrupt
         eint
-	nop
+        nop
 
 loop:
         ;; Note: could sleep here instead
@@ -98,15 +98,15 @@ loop:
 ;-------------------------------------------------------------------------------
 TIMER0_A0_ISR:
 	;;  before we even start running the mcu does a push PC, and a push SR cycles:6
-        dec.w   CNT                             ; have we looped INTERVAL_CNT times? cycles:1
+        dec.w   CNT                   ; have we looped INTERVAL_CNT times? cycles:1
         jnz     1f		                ; exit if we haven't reached 0 cycles:2
 
 	;; toggle led pin after (INTERVAL * TIMER_CYCLES) has occured
-        xor.b   LED_PIN,&P1OUT                  ; cycles:4
-        mov.w   INTERVAL_CNT,CNT		; reinitialize interval counter cycles:1
+        xor.b   LED_PIN,&P1OUT        ; cycles:4
+        mov.w   INTERVAL_CNT,CNT		  ; reinitialize interval counter cycles:1
 1:
-        add.w   TIMER_CYCLES,&TA0CCR0           ; set new CCR0 and go again cycles:4
-        reti                                    ; cycles:5
+        add.w   TIMER_CYCLES,&TA0CCR0 ; set new CCR0 and go again cycles:4
+        reti                          ; cycles:5
 
 ;------------------------------------------------------------------------------
 ; UNEXPECTED_ISR - default handler for unhandled interrupt
@@ -118,10 +118,11 @@ UNEXPECTED_ISR:
 ; Interrupt Vectors - see the datasheet for your chip
 ;                    *msp430g2553 vectors described below
 ;------------------------------------------------------------------------------
-	.section "__interrupt_vector_10","ax",@progbits
+        .section "__interrupt_vector_10","ax",@progbits
         .word TIMER0_A0_ISR     ;0xfff2 (TIMER0_A0_VECTOR)
 
         .section ".resetvec","ax",@progbits
         .word _start            ;0xfffe (RESET_VECTOR)
 
         .end
+
