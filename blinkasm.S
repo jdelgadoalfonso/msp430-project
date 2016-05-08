@@ -64,7 +64,7 @@
 ;-------------------------------------------------------------------------------
 _start:
         ;; disable watchdog and set stack to highest RAM addr
-        mov.w   #WDTPW|WDTHOLD,&WDTCTL
+        mov.w   #(WDTPW | WDTHOLD),&WDTCTL
         mov.w   #__stack,SP             ; gcc ldscripts compute __stack based on mmcu
 
         ;; initialize clock,gpio,timer
@@ -75,19 +75,19 @@ init:
         mov.b   &CALDCO_1MHZ,&DCOCTL
 
         ;; initialize global register values
-        mov.w   #_LED_PIN,LED_PIN       ; load constant into register constant
-        mov.w   #_50USEC,TIMER_CYCLES   ; load constant into register constant
-        mov.w   #_500MSEC,INTERVAL_CNT  ; load constant into register constant
-        mov.w   INTERVAL_CNT,CNT        ; initialize register based counter
+        mov.w   #_LED_PIN,LED_PIN         ; load constant into register constant
+        mov.w   #_50USEC,TIMER_CYCLES     ; load constant into register constant
+        mov.w   #_500MSEC,INTERVAL_CNT    ; load constant into register constant
+        mov.w   INTERVAL_CNT,CNT          ; initialize register based counter
 
         ;; initialize GPIO
-        bic.b   LED_PIN,&P1OUT          ; LED turned off to start
-        bis.b   LED_PIN,&P1DIR          ; Configure P1.0 as output pin
+        bic.b   LED_PIN,&P1OUT            ; LED turned off to start
+        bis.b   LED_PIN,&P1DIR            ; Configure P1.0 as output pin
 
         ;; initialize TimerA0
-        mov.w   #CCIE,&TA0CCTL0         ; Enable TA0CCR0 interrupt
-        mov.w   TIMER_CYCLES,&TA0CCR0   ; Set TIMER_CYCLES cycles
-        mov.w   #TASSEL_2|MC_2,&TACTL   ; SMCLK, Continuous Up Mode
+        mov.w   #CCIE,&TA0CCTL0           ; Enable TA0CCR0 interrupt
+        mov.w   TIMER_CYCLES,&TA0CCR0     ; Set TIMER_CYCLES cycles
+        mov.w   #(TASSEL_2 | MC_2),&TACTL ; SMCLK, Continuous Up Mode
 
         ;; enable interrupts and loop forever
         ;; real work done in the CCR0 interrupt
