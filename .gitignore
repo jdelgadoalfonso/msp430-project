@@ -1,6 +1,11 @@
-blinkasm.S.o
-blinkasm.elf
-blinkasm.hex
-blinkasm.lss
-blinkasm.map
+.codelite/
+msp430-project.project
+msp430-project.workspace
 
+*.?.o
+*.elf
+*.hex
+*.lss
+*.map
+*.dis
+*.swp

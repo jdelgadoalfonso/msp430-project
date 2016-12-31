@@ -10,22 +10,25 @@ MCU			 ?=msp430g2553
 
 CC				=msp430-elf-gcc
 CXX				=msp430-elf-g++
-COMMON		=-Wall -Os -I./ -Iinclude/
+COMMON		=-Wall -g -Os -Iincludes/
 CFLAGS	 +=-mmcu=$(MCU) $(COMMON)
 CXXFLAGS +=-mmcu=$(MCU) $(COMMON)
 ASFLAGS	 +=-mmcu=$(MCU) $(COMMON)
-LDFLAGS		=-Linclude/ -Wl,-Map,$(APP).map -nostdlib -nostartfiles -T $(MCU).ld -T $(MCU)_symbols.ld
+LDFLAGS		=-Wl,-Map,$(APP).map -nostdlib -nostartfiles -T $(MCU).ld -T $(MCU)_symbols.ld
 
-SOURCES		=$(shell find . -name *.c -o -name *.S)
+SOURCES		=$(shell find ./ -name '*.c' -o -name '*.S')
 OBJECTS		=$(addsuffix .o, $(SOURCES))
 
 all: $(APP).elf
 
-$(OBJECTS): $(SOURCES)
+%.c.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
+	
+%.S.o: %.S
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(APP).elf: $(OBJECTS)
-	$(CC) $(CFLAGS) $(LDFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJECTS) -o $@
 	msp430-elf-objdump -Sd -W $@ >$(APP).lss
 	msp430-elf-size $@
 	msp430-elf-objcopy -O ihex $@ $(APP).hex
@@ -47,3 +50,4 @@ debug: all
 
 clean:
 	rm -f $(OBJECTS) $(APP).elf $(APP).lss $(APP).map $(APP).hex $(APP)_cc.txt
+
