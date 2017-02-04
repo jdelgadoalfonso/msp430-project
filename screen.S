@@ -32,7 +32,9 @@ init_screen:
   bic.b r8, &_SCREEN_RS(OUT)
   call #send_spi_byte
 
-  delay_ms(10000)
+  delay_ms(10)
+  
+  delay_ms_by(120, 100)
 
   mov.b #0xcf, r9
   call #send_spi_byte
@@ -56,19 +58,12 @@ init_screen:
   bic.b r8, &_SCREEN_RS(OUT)
   mov.b #0x11, r9
 
-  delay_ms(10000)
+  delay_ms(10)
 
   mov.b #0x29, r9       ; Display on
 
-  delay_ms(10000)
+  delay_ms(10)
 
   ret
-
-
-// Function init_screen
-;-------------------------------------------------------------------------------
-.globl init_screen
-.type init_screen, @function
-;-------------------------------------------------------------------------------
 
 .end

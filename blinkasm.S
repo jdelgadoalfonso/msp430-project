@@ -12,6 +12,7 @@
 
 #include <msp430.h>
 #include "registers.h"
+#include "spi.h"
 
 ;-------------------------------------------------------------------------------
 ;;; --- devices with only one TimerA don't bother to number the defines ---
@@ -34,17 +35,17 @@
   #define _50USEC 22      /* @1MHz MCLK results in 23uSec/interrupt */
   #define _500MSEC 1      /* @1MHz MCLK results in 23uSec/LED toggle */
 #endif
-#define _LED_PIN BIT6     /* PORT1 pin, Launchpad has BIT0=Red and BIT6=Green */
+#define _LED_PIN BIT0     /* PORT1 pin, Launchpad has BIT0=Red and BIT6=Green */
 
 #define _SPI_PIN BIT5
 
 ;-------------------------------------------------------------------------------
 ;;; ---- Registers used as globals ----
 
-#define LED_PIN r4
-#define TIMER_CYCLES r5
-#define INTERVAL_CNT r6
-#define CNT r7
+#define LED_PIN       r4
+#define TIMER_CYCLES  r5
+#define INTERVAL_CNT  r6
+#define CNT           r7
 
 ;; or you could use some ram variables
 .lcomm tcycles, 2    ; example use of local bss data variable
@@ -60,40 +61,34 @@ _start:
 
   ;; initialize clock, gpio, spi, timer
 init:
-  ;; configure DCO to precalibrated 1MHz
+  ;; configure DCO to precalibrated 8MHz
   clr.b   &DCOCTL
-  mov.b   &CALBC1_1MHZ, &BCSCTL1
-  mov.b   &CALDCO_1MHZ, &DCOCTL
+  mov.b   &CALBC1_8MHZ, &BCSCTL1
+  mov.b   &CALDCO_8MHZ, &DCOCTL
 
   ;; initialize global register values
-  mov.w   #_LED_PIN, LED_PIN          ; load constant into register constant
-  mov.w   #_50USEC, TIMER_CYCLES      ; load constant into register constant
-  mov.w   #_500MSEC, INTERVAL_CNT     ; load constant into register constant
-  mov.w   INTERVAL_CNT, CNT           ; initialize register based counter
+  mov.w   #_LED_PIN, LED_PIN            ; load constant into register constant
+  mov.w   #_50USEC, TIMER_CYCLES        ; load constant into register constant
+  mov.w   #_500MSEC, INTERVAL_CNT       ; load constant into register constant
+  mov.w   INTERVAL_CNT, CNT             ; initialize register based counter
 
   ;; initialize GPIO
-  bic.b   LED_PIN, &P1OUT             ; LED turned off to start
-  bis.b   LED_PIN, &P1DIR             ; Configure P1.0 as output pin
-  
+  bis.b   LED_PIN, &P1DIR               ; Configure P1.0 as output pin
+  bic.b   LED_PIN, &P1OUT               ; LED turned off to start
+  mov.b   #SCREEN_RS, r8
+  bis.b   r8, &_SCREEN_RS(DIR)
+  bic.b   r8, &_SCREEN_RS(OUT)
+  mov.b   #SCREEN_CS, r8
+  bis.b   r8, &_SCREEN_CS(DIR)
+  bic.b   r8, &_SCREEN_CS(OUT)
+
   ;; initialize SPI
-  mov.b #BIT5, r8
-  bis.b r8, &P1OUT
-  bis.b r8, &P1OUT
-  mov.b #(BIT1 | BIT2 | BIT4), r8
-  mov.b r8, &P1SEL
-  mov.b r8, &P1SEL2
-  mov.b #UCSWRST, &UCA0CTL1;
-  bis.b #(UCCKPH | UCMSB | UCMST | UCSYNC), &UCA0CTL0 ; 3-pin, 8-bit SPI master
-  bis.b #UCSSEL_2, &UCA0CTL1                          ; SMCLK
-  bis.b #0x02, &UCA0BR0                               ; /2
-  clr.b &UCA0BR1
-  clr.b &UCA0MCTL
-  bic.b #UCSWRST, &UCA0CTL1   ; **Initialize USCI state machine**
-
-ready:
-  bit.b #IFG2, &UCA0TXIFG
-  jz ready
-
+  mov.b   #(BIT1 | BIT2 | BIT4), r8
+  mov.b   #(UCCKPH | UCMSB | UCMST | UCSYNC), r9
+  call #init_spi
+  
+  call #init_screen
+  
   ;; initialize TimerA0
   mov.w   #CCIE, &TA0CCTL0           ; Enable TA0CCR0 interrupt
   mov.w   TIMER_CYCLES, &TA0CCR0     ; Set TIMER_CYCLES cycles
@@ -104,9 +99,6 @@ ready:
   nop
   eint
 
-  mov.w   #2, r12
-  mov.w   #3, r13
-  call #sum
 loop:
   ;; Note: could sleep here instead
   jmp loop                           ; cycles:2
