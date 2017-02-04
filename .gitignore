@@ -9,3 +9,5 @@ msp430-project.workspace
 *.map
 *.dis
 *.swp
+
+blinkasm_cc.txt
