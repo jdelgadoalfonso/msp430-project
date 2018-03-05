@@ -14,7 +14,7 @@ COMMON     =-Wall -g -Os -dp -Iincludes/
 CFLAGS    +=-mmcu=$(MCU) $(COMMON)
 CXXFLAGS  +=-mmcu=$(MCU) $(COMMON)
 ASFLAGS   +=-mmcu=$(MCU) $(COMMON)
-LDFLAGS    =-dP -Wl,-Map,$(APP).map -nostdlib -nostartfiles -T $(MCU).ld -T $(MCU)_symbols.ld
+LDFLAGS    =-dP -Wl,-Map,$(APP).map -nostdlib -nostartfiles -T $(MCU).ld
 
 SOURCES    =$(shell find ./ -name '*.c' -o -name '*.S')
 OBJECTS    =$(addsuffix .o, $(SOURCES))
