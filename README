@@ -1,0 +1,36 @@
+cd msp430-binutils
+../binutils/configure --target=msp430-elf --prefix=/home/jose/x-tools/msp430-toolchain --disable-werror --enable-multilib --disable-shared --enable-lto --disable-nls --disable-sim
+make configure-host
+make
+make install
+
+cd msp430-gcc
+../gcc/configure --target=msp430-elf --prefix=/home/jose/x-tools/msp430-toolchain --disable-werror --enable-languages=c,c++ --with-newlib=yes --disable-nls --enable-lto --disable-shared --disable-threads --enable-multilib --with-system-zlib --disable-libgomp --enable-interwork --enable-addons
+make all-host
+make install-host
+
+cd msp430-newlib
+set -gx PATH /home/jose/x-tools/msp430-toolchain/bin $PATH
+export CFLAGS_FOR_TARGET="-Os -g -ffunction-sections -fdata-sections"
+../newlib/configure --target=msp430-elf --prefix=/home/jose/x-tools/msp430-toolchain --disable-werror --disable-nls --disable-newlib-supplied-syscalls --enable-newlib-reent-small --disable-newlib-fseek-optimization --disable-newlib-wide-orient --enable-newlib-nano-formatted-io --disable-newlib-io-float --enable-newlib-nano-malloc --disable-newlib-unbuf-stream-opt --enable-lite-exit --enable-newlib-global-atexit
+make
+make install
+
+cd msp430-gcc
+make all-target
+make install-target
+
+cd msp430-gdb
+../gdb/configure --target=msp430-elf --prefix=/home/jose/x-tools/msp430-toolchain --enable-interwork --disable-sim --disable-nls
+make
+make install
+
+cd mspdebug
+make
+make PREFIX=/home/jose/x-tools/msp430-toolchain install
+
+http://www.ti.com/tool/MSP430-GCC-OPENSOURCE
+
+cd msp430-gcc-support-files
+cp *.h /home/jose/x-tools/msp430-toolchain/msp430-elf/include
+cp *.ld /home/jose/x-tools/msp430-toolchain/msp430-elf/lib
